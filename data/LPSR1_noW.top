@@ -1,0 +1,10 @@
+#include "martini_v3.0.0.itp"
+#include "martini_v3.0.0_solvents_v1.itp"
+#include "martini_v3.0.0_ions_v1.itp"
+#include "LPSR1.itp"
+
+[ system ]
+LPSR1 symmetric bilayer from Rakesh Vaiwala and K. Ganapathy Ayappa (2023)
+
+[ molecules ]
+LPSR1   144
