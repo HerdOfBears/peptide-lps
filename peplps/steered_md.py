@@ -10,8 +10,10 @@ import shutil
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 import scipy.integrate as spytegrate
+from scipy.stats import gaussian_kde
 from peplps.helpers import build_simulation, build_system, get_force_by_name
 
 # Standard amino acid residue names plus common CHARMM protonation variants.
@@ -404,34 +406,60 @@ def plot_histograms(params:dict=None):
     Plots a histogram of the collective variable values obtained
     throughout umbrella sampling
     """
-    centers = np.loadtxt(os.path.join(params['odir'], 'windows/window_rvals.csv'), delimiter=",")
-
+    centers = np.loadtxt(
+        os.path.join(params['odir'], 'windows/window_rvals.csv'), delimiter=","
+    )
     n_windows = len(centers)
-    K=1000 # spring constant
+    K = 1000  # spring constant
 
-    # plot the histograms
-    metafilelines = []
+    # load everything first so bins can be shared
+    cv_data = []
     for i in range(n_windows):
-        data = np.loadtxt(
-            os.path.join(
-                params['odir'],
-                f'cv_values/cv_values_window_{i}.csv'
-            ), 
+        d = np.loadtxt(
+            os.path.join(params['odir'], f'cv_values/cv_values_window_{i}.csv'),
             delimiter=","
         )
-        plt.hist(data[:,1])
-        metafileline = f'cv_values/cv_values_window_{i}.csv {centers[i]} {K}\n'
-        metafilelines.append(metafileline)
+        cv_data.append(d[:, 1])
 
-    plt.xlabel("r (nm)")
-    plt.ylabel("count")
+    all_vals = np.concatenate(cv_data)
+    bins = np.linspace(all_vals.min(), all_vals.max(), 150)
 
-    plt.savefig(os.path.join(params['odir'],"cv_vals_hist.png"),dpi=200)
-    
-    with open(os.path.join(params['odir'],"metafile.txt"), "w") as f:
+    cmap = mpl.colormaps["viridis"]
+    colours = cmap(np.linspace(0, 1, n_windows))
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+
+    metafilelines = []
+    for i, vals in enumerate(cv_data):
+        ax.hist(vals, bins=bins, color=colours[i], alpha=0.6,
+                histtype="stepfilled", edgecolor="none")
+
+        # draw light kde curve on top of each histogram
+        kde = gaussian_kde(vals)
+        xs = np.linspace(vals.min(), vals.max(), 400)
+        # scale density -> counts so the curve sits on the histogram
+        scale = len(vals) * (bins[1] - bins[0])
+        ax.plot(xs, kde(xs) * scale, color=colours[i], lw=1.5, alpha=0.9)
+        
+        metafilelines.append(
+            f'cv_values/cv_values_window_{i}.csv {centers[i]} {K}\n'
+        )
+
+    ax.set_xlabel("r (nm)")
+    ax.set_ylabel("count")
+
+    sm = mpl.cm.ScalarMappable(
+        cmap=cmap, norm=mpl.colors.Normalize(centers.min(), centers.max())
+    )
+    fig.colorbar(sm, ax=ax, label="window centre (nm)")
+
+    fig.tight_layout()
+    fig.savefig(os.path.join(params['odir'], "cv_vals_hist.png"), dpi=200)
+
+    with open(os.path.join(params['odir'], "metafile.txt"), "w") as f:
         f.writelines(metafilelines)
 
-    plt.close()
+    plt.close(fig)
 
 def run_wham(r0, rf, params, nbins=50, tol=1e-6, temperature=303.15, numpad=0):
     """
@@ -522,18 +550,40 @@ def analyze_pmf(params:dict=None):
 
     Take a pmf, split into 'bound' and 'unbound'
     stages. Compute the integral over each of them.
+
+    Parameters:
+    -----------
+    params : dict
+        Dictionary of parameters, but must contain:
+        'temperature' : float, 
+            temperature in kelvin
+        'odir' : str, 
+            output directory where pmf.txt is located
+    
+    Returns:
+    --------
+    _raw_free_energy_of_binding : float
+        The raw free energy of binding (kJ/mol) computed from the PMF.
+    _raw_free_energy_of_binding_std : float or NaN
+        The standard error of the raw free energy of binding (kJ/mol) computed 
+        from the PMF, or NaN if the PMF does not include standard error estimates.
     """
+    if ('temperature' not in params) or ('odir' not in params):
+        raise ValueError("params must contain 'temperature' AND 'odir' keys")
     T = params['temperature'] # in kelvin
     # RT = (8.314)*T    # J/(mol)
     RT = (8.314e-3)*T # kJ/mol
 
     _pmf_fpath = os.path.join(params['odir'],'pmf.txt')
     _data = np.loadtxt(_pmf_fpath)
-    _rvals, _pmf_raw = _data[:,0], _data[:,1]
+    _rvals, _pmf_raw, _pmf_std = _data[:,0], _data[:,1], _data[:,2]
 
     _n_rvals = len(_rvals)
-
+    _condn_pmf_std_not_nan = all(np.isfinite(_pmf_std))
+    ##################################
+    # Bound state
     # assume first ~third is   'bound'
+    ##################################
     _rvals_bound    = _rvals[  :int(_n_rvals/3)]
     _pmf_raw_bound  = _pmf_raw[:int(_n_rvals/3)]
     _boltzmann_weighted_bound = np.exp(-(1/RT)*_pmf_raw_bound)
@@ -542,7 +592,24 @@ def analyze_pmf(params:dict=None):
         _rvals_bound
     )
 
+    # integrate deviation if available
+    if _condn_pmf_std_not_nan:
+        # compute standard error of exponential
+        # for f=exp(bA) and std_A, std_f^2 ~= f^2 * (b * std_A)^2
+        # std_f =  exp(bA) * |b * std_A|
+        _std_pmf_bound = _pmf_std[:int(_n_rvals/3)]
+        _b = (-1/RT)
+        _std_boltzmann_weighted_bound = np.exp(_b*_pmf_raw_bound) * np.abs(_b*_std_pmf_bound)
+        _integrated_bound_std = np.sqrt( spytegrate.trapezoid(
+            np.power(_std_boltzmann_weighted_bound, 2),
+            _rvals_bound
+        )
+        )
+
+    ##################################
+    # Unbound state
     # assume last  ~third is 'unbound'
+    ##################################
     _rvals_unbound    = _rvals[  -int(_n_rvals/3):]
     _pmf_raw_unbound  = _pmf_raw[-int(_n_rvals/3):]
     _boltzmann_weighted_unbound = np.exp(-(1/RT)*_pmf_raw_unbound)
@@ -555,11 +622,42 @@ def analyze_pmf(params:dict=None):
         _rvals_unbound
     )
 
+    # integrate deviation if available
+    if _condn_pmf_std_not_nan:
+        # compute standard error of exponential
+        # for f=exp(bA) and std_A, std_f^2 ~= f^2 * (b * std_A)^2
+        # std_f =  exp(bA) * |b * std_A|
+        _std_pmf_unbound = _pmf_std[-int(_n_rvals/3):]
+        _b = (-1/RT)
+        _std_boltzmann_weighted_unbound = np.exp(_b*_pmf_raw_unbound) * np.abs(_b*_std_pmf_unbound)
+        _integrated_unbound_std = np.sqrt( spytegrate.trapezoid(
+            np.power(_std_boltzmann_weighted_unbound, 2),
+            _rvals_unbound
+        )
+        )
+
+    ##################################
+    # Combine to estimate free energy of binding
+    ##################################
     _ratio_bound_unbound = _integrated_bound/(_integrated_unbound/_length_unbound)
+
+    # compute uncertainty in ratio if available
+    if _condn_pmf_std_not_nan:
+        # this assumes covariance is zero or negligible
+        _ratio_std = np.abs(_integrated_bound / _integrated_unbound ) * np.sqrt(
+            (_integrated_bound_std/_integrated_bound)**2 +
+            (_integrated_unbound_std/_integrated_unbound)**2
+        )
 
     # 'raw' Free energy of binding
     # technically needs to have corrections added
     # Eq. 19 from Computational Tools for Accurate Binding Free-Energy Prediction (2022)
     _raw_free_energy_of_binding = -RT*np.log(_ratio_bound_unbound)
 
-    return _raw_free_energy_of_binding
+    # compute uncertainty in free energy of binding if available
+    if _condn_pmf_std_not_nan:
+        _raw_free_energy_of_binding_std = np.abs( RT* (_ratio_std/(_ratio_bound_unbound + 1e-5 )) )
+    else:
+        _raw_free_energy_of_binding_std = np.nan*np.ones_like(_raw_free_energy_of_binding)
+
+    return _raw_free_energy_of_binding, _raw_free_energy_of_binding_std

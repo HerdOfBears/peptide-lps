@@ -15,15 +15,19 @@ import torch
 from peplps.boltz_helpers import run_boltz_predict, write_yaml_input
 from peplps.evo_bo import EVO_BO_2026, _NResEncoder
 
+# test
+from peplps.encoders import TopKofEncoder
+from peplps.peptide_encoder import PeptideEncoder
+
 def high_fidelity_score(seq, pep_id, params=None):
     """
     Implements the umbrella sampling set up and pipeline
     """
     print(f"Processing peptide {pep_id} with sequence {seq}")
-    n_arginines = seq.count("R")
-    return n_arginines
+    # n_arginines = seq.count("R")
+    # return n_arginines
 
-    _odir = Path(params.wdir) / f"peptide-{pep_id}"
+    _odir = Path(params["expt_dir"]) / f"peptide-{pep_id}"
     if not _odir.exists():
         _odir.mkdir(parents=True)
 
@@ -38,11 +42,11 @@ def high_fidelity_score(seq, pep_id, params=None):
     run_boltz_predict(
         yaml_path=yaml_path,
         out_dir=out_dir,
-        accelerator=params.accelerator,
-        recycling_steps=params.recycling_steps,
-        diffusion_samples=params.diffusion_samples,
+        accelerator=params["accelerator"],
+        recycling_steps=params["recycling_steps"],
+        diffusion_samples=params["diffusion_samples"],
         output_format=_output_fmt,
-        override=params.override
+        override=params["override"]
     )
 
     ####
@@ -76,8 +80,8 @@ def high_fidelity_score(seq, pep_id, params=None):
     #    --odir wdir/peptide-pep_id/
     #    --ff_toppar_path path_to_toppar (which will be in wdir/)
     #    --rseed 42
-    _psf = Path(params.wdir) / f"peptide-{pep_id}" / "solvated_ionized.psf"
-    _pdb = Path(params.wdir) / f"peptide-{pep_id}" / "solvated_ionized.pdb"
+    _psf = Path(params["expt_dir"]) / f"peptide-{pep_id}" / "solvated_ionized.psf"
+    _pdb = Path(params["expt_dir"]) / f"peptide-{pep_id}" / "solvated_ionized.pdb"
     run_smd_script = Path("scripts/run_smd.py")
     subprocess.run([
         sys.executable,  # Use the current Python interpreter
@@ -85,17 +89,25 @@ def high_fidelity_score(seq, pep_id, params=None):
         "--pepid", str(pep_id),
         "--psf", str(_psf),
         "--pdb", str(_pdb),
-        "--wdir", str(params.wdir),
-        "--odir", _odir,
-        "--ff_toppar_path", str(params.ff_toppar_path),
+        "--wdir", str(params["expt_dir"]),
+        "--odir", str(_odir),
+        "--ff_toppar_path", str(params["ff_toppar_path"]),
         "--rseed", "42",
         "--init_fmax_cutoff", "3500",
-        "--n_windows", str(params.n_windows),
-        "--run_umbrella" if params.run_umbrella else ""
+        "--n_windows", str(params["n_windows"]),
+        "--run_umbrella" if params["run_umbrella"] else ""
     ], check=True)
 
     print(f"Finished processing peptide {pep_id}")
-    pass
+    if os.path.exists(_odir / "free_energy.csv"):
+        
+        _df = pd.read_csv(_odir / "free_energy.csv")
+
+        free_energy = _df["energy"].to_numpy()[0]
+        return free_energy
+    else:
+        logging.warning(f"Free energy file not found for peptide {pep_id}. Assigning large positive value.")
+        return 1e3
 
 def main(params):
 
@@ -106,7 +118,7 @@ def main(params):
         train_x = train_x.to_numpy().reshape(-1,1)
 
         if params["FIDELITIES"] == [1.0]:
-            train_x = np.concat(
+            train_x = np.concatenate(
                 (train_x, np.ones_like(train_x)), 
                 axis=1
             )
@@ -148,7 +160,11 @@ def main(params):
                 _fidelity_val = _fidelity_val.item()
 
             if _fidelity_val >= 0.5:
-                _score = high_fidelity_score(design, f"pep-{id_counter}")
+                _score = high_fidelity_score(design, f"pep-{id_counter}", params=params)
+                
+                # maximize the score (i.e. minimize free energy)
+                _score = -1.0 * _score
+
                 new_obj[i] = _score
 
                 results['scores'].append(_score)
@@ -180,15 +196,31 @@ def main(params):
 if __name__=="__main__":
 
     params = {}
-    params["expt_dir"] = "outputs/us_test"
-    params["N_ITER"]=30
+    params["expt_dir"] = "outputs/bayesopt_expt1"
+    params["N_ITER"]=10
     params["FIDELITIES"] = [1.0]
     params['MIN_MUTATIONS'] = 1 # how few mutations are allowed when sampling seqs 
     params['MAX_MUTATIONS'] = 3 # what is the max number of mutations allowed when sampling seqs
 
-    params['ENCODER'] = _NResEncoder()
+    encoder = PeptideEncoder.load("./data/encoders/hvae_transvae_d064_encoder.pt")
+    encoder = TopKofEncoder(encoder, k=5)
+    params['ENCODER'] = encoder
+
     # number of sequences to suggest at each BayesOpt iteration
     params['BATCH_SIZE'] = 1 
 
     params['initial_data_fpath'] = "./input_files/bo_initial_data.csv"
+    params['initial_data_fpath'] = "./data/bayesopt_initial_data.csv"    
+    
+    # parameters for Boltz 2
+    params['accelerator'] = "gpu"
+    params['recycling_steps'] = 3
+    params['diffusion_samples'] = 1
+    params['override'] = True
+
+    # parameters for SMD simulations
+    params['n_windows'] = 26
+    params['run_umbrella'] = True
+    params['ff_toppar_path'] = "./data/ff_files/toppar/"
+    
     main(params)

@@ -212,8 +212,8 @@ class EVO_BO_2026:
         if len(self.train_x) == 0:
             raise ValueError("need at least one initial observation")
 
-        self.seq_len = len(self.train_x[0, 0])
         self.wt_sequence = str(self.train_x[int(np.argmax(self.train_obj)), 0])
+        self.seq_len = len(self.wt_sequence)
         if self.max_mutations is None:
             self.max_mutations = min(3, self.seq_len)
         self.max_mutations = int(min(self.max_mutations, self.seq_len))
@@ -382,16 +382,19 @@ class EVO_BO_2026:
 
     def _random_mutant(self, seed_seq: str, pos_weights: np.ndarray) -> str:
         seq = list(seed_seq)
+        _max_seq_len = min(self.seq_len, len(seq))
+        if self.position_sampling == "uniform":
+            pos_weights = np.full(_max_seq_len, 1.0 / _max_seq_len)
 
         # get number of mutations to perform for given sequence
         n_mut = int(self.rng.poisson(self.mutation_rate))
-        _max_mut = min(n_mut, self.max_mutations, self.seq_len)
+        _max_mut = min(n_mut, self.max_mutations, _max_seq_len)
         n_mut = max(self.min_mutations, _max_mut)
 
         # get positions at which the mutations will occur
         # all unique positions.
         positions = self.rng.choice(
-            self.seq_len, size=n_mut, replace=False, p=pos_weights
+            _max_seq_len, size=n_mut, replace=False, p=pos_weights
         )
 
         # perform mutations with 'method' sampling over amino acids

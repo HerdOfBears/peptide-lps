@@ -311,14 +311,27 @@ def build_system(params):
     L = set_cubic_box_from_positions(solvated_psf, struct_crds.positions.in_units_of(unit.angstrom), padding_nm=0.0)
     # logging.info(f"Set cubic box length (nm): {L}")
 
-    # set up system
-    system = solvated_psf.createSystem(
-        ff_params,
-        nonbondedMethod=app.PME,
-        nonbondedCutoff=params['nonbondedCutoff']*unit.nanometer,
-        constraints=app.HBonds,
-        ewaldErrorTolerance=1e-4,
-    )
+    _hmr_mass = params.get("hmr_mass", None)
+    if _hmr_mass is not None:
+        # set up system
+        system = solvated_psf.createSystem(
+            ff_params,
+            nonbondedMethod=app.PME,
+            nonbondedCutoff=params['nonbondedCutoff']*unit.nanometer,
+            constraints=app.HBonds,
+            ewaldErrorTolerance=1e-4,
+        )
+    else:
+        # set up system
+        system = solvated_psf.createSystem(
+            ff_params,
+            nonbondedMethod=app.PME,
+            nonbondedCutoff=params['nonbondedCutoff']*unit.nanometer,
+            constraints=app.HBonds,
+            ewaldErrorTolerance=1e-4,
+            hydrogenMass=_hmr_mass
+        )
+
 
     return system, solvated_psf, struct_crds
 

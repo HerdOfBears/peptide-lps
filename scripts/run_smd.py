@@ -330,10 +330,10 @@ if __name__=="__main__":
             plot_pmf(params)
 
             logging.info(f"Compute estimate of free-energy of binding")
-            _free_energy_binding = analyze_pmf(params)
+            _free_energy_binding, _free_energy_binding_std = analyze_pmf(params)
 
-            _header = "pep-id,energy\n"
-            _line   = f"{params['pepid']},{_free_energy_binding}"
+            _header = "pep-id,energy,std\n"
+            _line   = f"{params['pepid']},{_free_energy_binding},{_free_energy_binding_std}\n"
             with open(os.path.join(params['odir'],"free_energy.csv"), 'w') as f:
                 f.writelines(
                     [_header,
