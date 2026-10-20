@@ -49,8 +49,7 @@ class Encoder():
         with torch.inference_mode():
             output = self.model(**inputs)
 
-        print(output.keys())
-        return output.hidden_states[-1]
+        return output.last_hidden_state
 
 class EncoderWithPCA():
     """
@@ -78,3 +77,17 @@ class EncoderWithPCA():
         _pc_encoding = self.PCA.transform(_encoding)
 
         return _pc_encoding
+
+class TopKofEncoder():
+    """
+    Take the top k dimensions of a given encoder.
+    """
+    def __init__(self, encoder:Encoder, k:int=5):
+        self.encoder = encoder
+        self.k       = k
+
+    def encode(self, sequence:str|list[str])->torch.tensor:
+        _encoding = self.encoder.encode(sequence)
+        if isinstance(_encoding, tuple):
+            _encoding = _encoding[0] # Assume latent point is first element
+        return _encoding[:,:self.k]
