@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# USE: sets up all-atom single-peptide-single-LPS system
+
 set -euo pipefail
 
 PEP_PDB=$1
