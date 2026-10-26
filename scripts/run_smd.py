@@ -58,6 +58,7 @@ if __name__=="__main__":
     parser.add_argument("--init_fmax_cutoff", default=3_000, type=float, required=False,
                         help="Maximum force cutoff for successful energy minimization (default: 3000 kJ/mol/nm)")
     parser.add_argument("--n_windows", default=None, type=int, help="Number of windows to save during SMD and analyze in Umbrella Sampling")
+    parser.add_argument("--window_sim_time_ns", default=1.0, type=float, help="Simulation time in ns for each umbrella sampling window")
     parser.add_argument("--run_umbrella", default=False, action="store_true",help="Whether or not to do umbrella sampling, or just SMD")
     args = parser.parse_args()
 
@@ -91,6 +92,7 @@ if __name__=="__main__":
 
     n_windows = params['n_windows']
     RUN_UMBRELLA = params['run_umbrella']
+    window_sim_time_ns = params['window_sim_time_ns']
     #####################################
     # load forcefield parameters
     #####################################
@@ -300,9 +302,9 @@ if __name__=="__main__":
     ########################
     ########################
     if (n_windows is not None) and (RUN_UMBRELLA):
-        params['window_npt_time']=1.0
+        params['window_npt_time']=window_sim_time_ns
         t0 = time.time()
-        logging.info(f"Running windows.")
+        logging.info(f"Running each window for {window_sim_time_ns} ns.")
         for i in range(n_windows):
             logging.info(f"On {i+1}/{n_windows}")
             run_window(simulation, i, params)
