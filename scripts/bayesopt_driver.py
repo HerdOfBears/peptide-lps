@@ -124,9 +124,11 @@ def main(params):
             )
         else:
             train_fids = _data['fidelity'].to_numpy().reshape(-1,1)
-            train_x = np.concat( (train_x, train_fids), axis=1)
+            train_x = np.concatenate( (train_x, train_fids), axis=1)
 
         train_obj = _data['objective'].to_numpy().reshape(-1,1)
+        if params["MAX_OR_MIN_OBJ"] == "MIN":
+            train_obj = -1.0 * train_obj
     else:
         train_x   = None
         train_obj = None
@@ -162,9 +164,12 @@ def main(params):
             if _fidelity_val >= 0.5:
                 _score = high_fidelity_score(design, f"pep-{id_counter}", params=params)
                 
-                # maximize the score (i.e. minimize free energy)
-                _score = -1.0 * _score
-
+                # We want to minimize free energy, 
+                # but the EVO-BO object is set to maximize given score.
+                if params["MAX_OR_MIN_OBJ"] == "MIN":
+                    _score = -1.0 * _score
+                else:
+                    _score = _score
                 new_obj[i] = _score
 
                 results['scores'].append(_score)
@@ -197,6 +202,7 @@ if __name__=="__main__":
 
     params = {}
     params["expt_dir"] = "outputs/bayesopt_expt1"
+    params["MAX_OR_MIN_OBJ"] = "MIN"  # or "MAX"
     params["N_ITER"]=10
     params["FIDELITIES"] = [1.0]
     params['MIN_MUTATIONS'] = 1 # how few mutations are allowed when sampling seqs 
