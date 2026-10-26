@@ -28,6 +28,8 @@ def high_fidelity_score(seq, pep_id, params=None):
     # return n_arginines
 
     _odir = Path(params["expt_dir"]) / f"peptide-{pep_id}"
+    if params['smoke_test']:
+        _odir = Path(params["expt_dir"]) / f"peptide-{pep_id}-smoke_test"
     if not _odir.exists():
         _odir.mkdir(parents=True)
 
@@ -95,6 +97,7 @@ def high_fidelity_score(seq, pep_id, params=None):
         "--rseed", "42",
         "--init_fmax_cutoff", "3500",
         "--n_windows", str(params["n_windows"]),
+        "--window_sim_time_ns", str(params["window_sim_time_ns"]),
         "--run_umbrella" if params["run_umbrella"] else ""
     ], check=True)
 
@@ -200,13 +203,23 @@ def main(params):
 
 if __name__=="__main__":
 
+    argparser = argparse.ArgumentParser(description="Run Bayesian Optimization for peptide design.")
+    argparser.add_argument("--smoke_test", action="store_true", help="Run a quick smoke test with minimal iterations.")
+
+    args = argparser.parse_args()
+    args = vars(args)
+
     params = {}
+    params['smoke_test'] = args['smoke_test']
     params["expt_dir"] = "outputs/bayesopt_expt1"
     params["MAX_OR_MIN_OBJ"] = "MIN"  # or "MAX"
-    params["N_ITER"]=10
     params["FIDELITIES"] = [1.0]
     params['MIN_MUTATIONS'] = 1 # how few mutations are allowed when sampling seqs 
     params['MAX_MUTATIONS'] = 3 # what is the max number of mutations allowed when sampling seqs
+
+    params["N_ITER"]=10
+    if params['smoke_test']:
+        params["N_ITER"] = 2
 
     encoder = PeptideEncoder.load("./data/encoders/hvae_transvae_d064_encoder.pt")
     encoder = TopKofEncoder(encoder, k=5)
@@ -226,6 +239,7 @@ if __name__=="__main__":
 
     # parameters for SMD simulations
     params['n_windows'] = 26
+    params["window_sim_time_ns"] = 1.0
     params['run_umbrella'] = True
     params['ff_toppar_path'] = "./data/ff_files/toppar/"
     
