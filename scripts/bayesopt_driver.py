@@ -238,9 +238,12 @@ if __name__=="__main__":
     params['override'] = True
 
     # parameters for SMD simulations
-    params['n_windows'] = 26
-    params["window_sim_time_ns"] = 1.0
-    params['run_umbrella'] = True
     params['ff_toppar_path'] = "./data/ff_files/toppar/"
+    params['run_umbrella'] = True
+    params["window_sim_time_ns"] = 1.0
+    params['n_windows'] = 26
+    if params['smoke_test']:
+        params['n_windows'] = 6
+        params["window_sim_time_ns"] = 0.1
     
     main(params)
