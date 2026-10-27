@@ -204,6 +204,7 @@ def main(params):
 if __name__=="__main__":
 
     argparser = argparse.ArgumentParser(description="Run Bayesian Optimization for peptide design.")
+    argparser.add_argument("--expt_dir", type=str, default="outputs/bayesopt_expt1", help="Directory to save experiment outputs.")
     argparser.add_argument("--smoke_test", action="store_true", help="Run a quick smoke test with minimal iterations.")
 
     args = argparser.parse_args()
@@ -211,7 +212,7 @@ if __name__=="__main__":
 
     params = {}
     params['smoke_test'] = args['smoke_test']
-    params["expt_dir"] = "outputs/bayesopt_expt1"
+    params["expt_dir"]   = args["expt_dir"]
     params["MAX_OR_MIN_OBJ"] = "MIN"  # or "MAX"
     params["FIDELITIES"] = [1.0]
     params['MIN_MUTATIONS'] = 1 # how few mutations are allowed when sampling seqs 
