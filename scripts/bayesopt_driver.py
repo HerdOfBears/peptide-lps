@@ -97,6 +97,7 @@ def high_fidelity_score(seq, pep_id, params=None):
         "--init_fmax_cutoff", "3500",
         "--n_windows", str(params["n_windows"]),
         "--window_sim_time_ns", str(params["window_sim_time_ns"]),
+        "--save_window_traj" if params["save_window_traj"] else "",
         "--run_umbrella" if params["run_umbrella"] else ""
     ], check=True)
 
