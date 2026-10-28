@@ -15,6 +15,7 @@ EXPT_DIR=$SCRATCH/peptide-lps/bayesopt_expt1_smoke_test/
 module load StdEnv/2023 gcc/12.3 openmpi/4.1.5 cuda/12.6
 module load vmd/1.9.4a57
 module load gromacs/2026.1 openmm/8.4.0
+module load rdkit/2025.09.4
 module load wham/2.1.0
 
 # Activate the virtual environment
