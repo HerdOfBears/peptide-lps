@@ -343,7 +343,7 @@ def run_window(simulation, window_ix:int, params:dict=None):
     # reset velocities 
     simulation.context.setVelocitiesToTemperature(
         params['temperature']*unit.kelvin, 
-        params["rseed"]
+        int(params["rseed"]) + window_ix
     )
 
     e = simulation.context.getState(getEnergy=True).getPotentialEnergy()
@@ -357,7 +357,26 @@ def run_window(simulation, window_ix:int, params:dict=None):
     # run short equilibration with new positions and r0
     simulation.step(1000)
 
-    ##### 
+    ##############################
+    # optional per-window output. attached after equilibration so it isn't recorded
+    _out_dir = os.path.join(params['odir'], 'window_out')
+    os.makedirs(_out_dir, exist_ok=True)
+
+    record_steps = 1_000
+    traj_every   = int(params.get('traj_interval',  record_steps))        # steps between frames
+    state_every  = int(params.get('state_interval', record_steps))
+
+    if params.get('save_window_traj', False):
+        simulation.reporters.append(app.XTCReporter(
+            os.path.join(_out_dir, f'window_{window_ix}.xtc'), traj_every))
+
+    if params.get('save_window_state', False):
+        simulation.reporters.append(app.StateDataReporter(
+            os.path.join(_out_dir, f'window_{window_ix}_state.csv'), state_every,
+            step=True, time=True,
+            potentialEnergy=True, kineticEnergy=True, totalEnergy=True,
+            temperature=True, volume=True, density=True, speed=True))
+
     # run the data collection
 
     dt_ps = simulation.integrator.getStepSize().value_in_unit(unit.picosecond)
@@ -398,7 +417,7 @@ def run_window(simulation, window_ix:int, params:dict=None):
         np.array(cv_values),
         delimiter=","
     )
-
+    # simulation.saveState(os.path.join(_out_dir, f'window_{window_ix}_final.xml'))
     print('Completed window', window_ix)
 
 def plot_histograms(params:dict=None):

@@ -64,7 +64,9 @@ if __name__=="__main__":
                         help="Maximum force cutoff for successful energy minimization (default: 3000 kJ/mol/nm)")
     parser.add_argument("--n_windows", default=None, type=int, help="Number of windows to save during SMD and analyze in Umbrella Sampling")
     parser.add_argument("--window_sim_time_ns", default=1.0, type=float, help="Simulation time in ns for each umbrella sampling window")
+    parser.add_argument("--save_window_traj", default=False, action="store_true", help="Whether or not to save the trajectory for each window")
     parser.add_argument("--run_umbrella", default=False, action="store_true",help="Whether or not to do umbrella sampling, or just SMD")
+    
     args = parser.parse_args()
 
     params = vars(args)
@@ -85,6 +87,8 @@ if __name__=="__main__":
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
+    if params['save_window_traj']:
+        params['save_window_state'] = True
 
     output_state_fpath = os.path.join(
         params["odir"], 
