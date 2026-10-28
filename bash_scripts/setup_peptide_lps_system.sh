@@ -16,13 +16,13 @@ SCRIPT_DIR="bash_scripts/"
 # make protein psf
 # outputs peptide.pdb peptide.psf
 echo "making peptide.psf and peptide.pdb.."
-bash "${SCRIPT_DIR}psfgen_protein.sh" "${PEP_PDB}"
+bash "${SCRIPT_DIR}psfgen_protein.sh" "${PEP_PDB}" "${wDIR}"
 
 # combine peptide and LPS 
 # place peptide 1.2nm away from LPS
 # outputs combined.psf combined.pdb
 echo "combining peptide and LPS, and placing peptide near LPS.."
-bash "${SCRIPT_DIR}psfgen_and_move_with_vmd.sh" "$LPS_PSF" "$LPS_PDB" "peptide.psf" "peptide.pdb" "$wDIR/combined"
+bash "${SCRIPT_DIR}psfgen_and_move_with_vmd.sh" "$LPS_PSF" "$LPS_PDB" "$wDIR/peptide.psf" "$wDIR/peptide.pdb" "$wDIR/combined"
 
 # solvate+ionize
 # outputs solvated_ionized.psf and solvated_ionized.pdb

@@ -1,6 +1,7 @@
 #!/bin/bash 
 #
 PEP_PDB=$1
+OUT_DIR=$2
 FFfiles_dir="data/ff_files"
 
 TCL_SCRIPT=$(mktemp /tmp/psfgen_merge_XXXXXX.tcl)
@@ -24,9 +25,9 @@ coordpdb $PEP_PDB PEP
 
 # Guess any missing coordinates
 guesscoord
-
-writepsf peptide.psf
-writepdb peptide.pdb
+    
+writepsf $OUT_DIR/peptide.psf
+writepdb $OUT_DIR/peptide.pdb
 exit
 EOF
 
