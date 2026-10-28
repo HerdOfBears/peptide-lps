@@ -73,7 +73,35 @@ chmod +x bash_scripts/setup_peptide_lps_system.sh
 ```
 
 ## On a DRAC cluster
-On a DRAC cluster, like Rorqual, many of the packages may need to be loaded as a module first. OpenMM is not a pip installed package, and instead is a module that is loaded *before* activating the virtual environment. One issue you may encounter is setting up Boltz on a DRAC cluster. One method is to set it up locally somewhere, then use globus to transfer the model weights and mol/ directory to ~/.boltz (on the cluster) before starting any jobs.
+1. After cloning this repo, set up a python virtual environment.
+```
+module load python/3.12.4
+python -m venv .venv --prompt peptide-lps
+```
+This sets up a virtual environment '.venv' with python 3.12.4 that will be displayed as '(peptide-lps)' in the terminal prompt upon activation. 
+
+2. Activate the environment
+```
+source .venv/bin/activate
+```
+
+3. Use the requirements_drac.txt file
+To have pip first look in the DRAC wheelhouse, use
+```
+pip install --find-links /cvmfs/soft.computecanada.ca/custom/python/wheelhouse/generic/ -r requirements_drac.txt
+```
+
+To ignore the wheelhouse just use the conventional:
+```
+pip install -r requirements_drac.txt
+```
+
+4. Boltz
+One issue you may encounter is setting up Boltz on a DRAC cluster. One method is to download the weights and mol.tar from https://huggingface.co/moritztng/boltz-2 locally somewhere, then use globus to transfer the model weights and mol/ directory to ~/.boltz (on the cluster) before starting any jobs. Globus won't have permissions for ~/.boltz (on clulster), so a workaround is to make a 'temp-boltz' directory and transfer to that, then copy into .boltz, then delete 'temp-boltz'.
+
+5. Don't forget to load modules in your submission script
+
+On a DRAC cluster, like Rorqual, many of the packages may need to be loaded as a module first. OpenMM is not a pip installed package, and instead is a module that is loaded *before* activating the virtual environment. The submit_bayesopt.sh job submission script provides a boiler-plate for loading the modules before activating the environment. 
 
 # Test
 To test the installation, I recommend trying to run a bayesopt_driver.py smoke test. This tests the entire umbrella sampling workflow, the Bayesian optimization loop, and the generative model. In a smoke test it sets the umbrella sampling window sim length to 100ps the number of windows to six; it also sets the number of bayesian optimization iterations to one. 
