@@ -17,9 +17,14 @@ import argparse
 
 import logging
 
-from structSim import calculate_state_PE_and_maxForce
-from structSim.equilibration import staged_soft_energy_minimization
-from structSim.openmm_helpers import add_backbone_posres
+# from structSim import calculate_state_PE_and_maxForce
+# from structSim.equilibration import staged_soft_energy_minimization
+# from structSim.openmm_helpers import add_backbone_posres
+from peplps.openmm_helpers import (
+    add_backbone_posres,
+    calculate_state_PE_and_maxForce,
+    staged_soft_energy_minimization
+)
 
 from peplps.helpers import (
     get_indices, 
