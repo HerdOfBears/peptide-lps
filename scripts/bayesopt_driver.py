@@ -246,5 +246,6 @@ if __name__=="__main__":
     if params['smoke_test']:
         params['n_windows'] = 6
         params["window_sim_time_ns"] = 0.1
+        params["save_window_traj"] = True
     
     main(params)
