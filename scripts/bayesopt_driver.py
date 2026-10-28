@@ -26,7 +26,6 @@ def high_fidelity_score(seq, pep_id, params=None):
     print(f"Processing peptide {pep_id} with sequence {seq}")
     # n_arginines = seq.count("R")
     # return n_arginines
-
     _odir = Path(params["expt_dir"]) / f"peptide-{pep_id}"
     if params['smoke_test']:
         _odir = Path(params["expt_dir"]) / f"peptide-{pep_id}-smoke_test"
@@ -82,8 +81,8 @@ def high_fidelity_score(seq, pep_id, params=None):
     #    --odir wdir/peptide-pep_id/
     #    --ff_toppar_path path_to_toppar (which will be in wdir/)
     #    --rseed 42
-    _psf = Path(params["expt_dir"]) / f"peptide-{pep_id}" / "solvated_ionized.psf"
-    _pdb = Path(params["expt_dir"]) / f"peptide-{pep_id}" / "solvated_ionized.pdb"
+    _psf = _odir / "solvated_ionized.psf"
+    _pdb = _odir / "solvated_ionized.pdb"
     run_smd_script = Path("scripts/run_smd.py")
     subprocess.run([
         sys.executable,  # Use the current Python interpreter
