@@ -1,7 +1,7 @@
 #!/bin/bash 
 #
 PEP_PDB=$1
-FFfiles_dir="ff_files"
+FFfiles_dir="data/ff_files"
 
 TCL_SCRIPT=$(mktemp /tmp/psfgen_merge_XXXXXX.tcl)
 
