@@ -104,7 +104,12 @@ One issue you may encounter is setting up Boltz on a DRAC cluster. One method is
 On a DRAC cluster, like Rorqual, many of the packages may need to be loaded as a module first. OpenMM is not a pip installed package, and instead is a module that is loaded *before* activating the virtual environment. The submit_bayesopt.sh job submission script provides a boiler-plate for loading the modules before activating the environment. 
 
 # Test
-To test the installation, I recommend trying to run a bayesopt_driver.py smoke test. This tests the entire umbrella sampling workflow, the Bayesian optimization loop, and the generative model. In a smoke test it sets the umbrella sampling window sim length to 100ps the number of windows to six; it also sets the number of bayesian optimization iterations to one. 
+To test the installation, I recommend trying to run a bayesopt_driver.py smoke test. After modifying the account name, runtime, hardware request, and the scratch output directory ('EXPT_NAME') in submit_bayesopt.sh, you should be able to submit that as a test
+```
+sbatch submit_bayesopt.sh
+```
+
+This tests the entire umbrella sampling workflow, the Bayesian optimization loop, and the generative model. In a smoke test it sets the umbrella sampling window sim length to 100ps the number of windows to six; it also sets the number of bayesian optimization iterations to two. 
 
 
 
