@@ -100,7 +100,7 @@ def high_fidelity_score(seq, pep_id, params=None):
         "--save_window_traj" if params["save_window_traj"] else "",
         "--run_umbrella" if params["run_umbrella"] else "",
         "--parallelize_windows" if params["parallelize_windows"] else "",
-        "--n_parallel_jobs", str(params["n_parallel_jobs"]) if params["parallelize_windows"] else ""
+        "--n_parallel_jobs", str(params["n_parallel_jobs"]) if params["parallelize_windows"] else str(1)
     ], check=True)
 
     print(f"Finished processing peptide {pep_id}")
