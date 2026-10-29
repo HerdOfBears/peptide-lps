@@ -66,6 +66,8 @@ if __name__=="__main__":
     parser.add_argument("--window_sim_time_ns", default=1.0, type=float, help="Simulation time in ns for each umbrella sampling window")
     parser.add_argument("--save_window_traj", default=False, action="store_true", help="Whether or not to save the trajectory for each window")
     parser.add_argument("--run_umbrella", default=False, action="store_true",help="Whether or not to do umbrella sampling, or just SMD")
+    parser.add_argument("--parallelize_windows", default=False, action="store_true", help="Whether or not to run umbrella sampling windows in parallel using joblib")
+    parser.add_argument("--n_parallel_jobs", default=1, type=int, help="Number of parallel jobs to run if parallelizing umbrella sampling windows")
     
     args = parser.parse_args()
 

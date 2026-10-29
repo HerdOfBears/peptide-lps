@@ -98,7 +98,9 @@ def high_fidelity_score(seq, pep_id, params=None):
         "--n_windows", str(params["n_windows"]),
         "--window_sim_time_ns", str(params["window_sim_time_ns"]),
         "--save_window_traj" if params["save_window_traj"] else "",
-        "--run_umbrella" if params["run_umbrella"] else ""
+        "--run_umbrella" if params["run_umbrella"] else "",
+        "--parallelize_windows" if params["parallelize_windows"] else "",
+        "--n_parallel_jobs", str(params["n_parallel_jobs"]) if params["parallelize_windows"] else ""
     ], check=True)
 
     print(f"Finished processing peptide {pep_id}")
@@ -245,6 +247,7 @@ if __name__=="__main__":
     params['n_windows'] = 26
     params["save_window_traj"] = True
 
+    # parallelization parameters (uses joblib)
     params["parallelize_windows"] = True
     params['n_parallel_jobs'] = 5
 
