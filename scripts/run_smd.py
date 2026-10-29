@@ -8,12 +8,12 @@ import openmm.app as app
 from openmm import MonteCarloBarostat
 
 import parmed as pmd
-import logging
 
 import sys
 import math
 import numpy as np
 import argparse
+from joblib import Parallel, delayed
 
 import logging
 
@@ -314,9 +314,17 @@ if __name__=="__main__":
         params['window_npt_time']=window_sim_time_ns
         t0 = time.time()
         logging.info(f"Running each window for {window_sim_time_ns} ns.")
-        for i in range(n_windows):
-            logging.info(f"On {i+1}/{n_windows}")
-            run_window(simulation, i, params)
+
+        if params["parallelize_windows"]:
+            logging.info(f"Running windows in parallel using joblib with n_jobs={params['n_parallel_jobs']}")
+            Parallel(n_jobs=params['n_parallel_jobs'])(
+                delayed(run_window)(i, params) for i in range(n_windows)
+            )
+        else:
+            logging.info(f"Running windows sequentially")
+            for i in range(n_windows):
+                logging.info(f"On {i+1}/{n_windows}")
+                run_window(i, params)
 
         logging.info(f"{time.time()-t0}s elapsed for running windows")
 
