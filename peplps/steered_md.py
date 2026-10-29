@@ -293,7 +293,12 @@ def compute_work(log):
     work = np.concatenate([[0.0], np.cumsum(increments)])
     return work
 
-def run_window(simulation, window_ix:int, params:dict=None):
+def run_window(window_ix:int, params:dict=None):
+    """
+    Runs a single umbrella sampling window, saving the CV time series to a file.
+    Optionally saves the trajectory and/or state data for the window if requested in params.
+    Simulation object is built/loaded below.
+    """
 
     centers = np.loadtxt(os.path.join(params['odir'], 'windows/window_rvals.csv'), delimiter=",")
     if window_ix >= len(centers):
@@ -359,12 +364,13 @@ def run_window(simulation, window_ix:int, params:dict=None):
 
     ##############################
     # optional per-window output. attached after equilibration so it isn't recorded
-    _out_dir = os.path.join(params['odir'], 'window_out')
-    os.makedirs(_out_dir, exist_ok=True)
-
     record_steps = 1_000
-    traj_every   = int(params.get('traj_interval',  record_steps))        # steps between frames
-    state_every  = int(params.get('state_interval', record_steps))
+    if params.get('save_window_traj', False) or params.get('save_window_state', False):
+        _out_dir = os.path.join(params['odir'], 'window_out')
+        os.makedirs(_out_dir, exist_ok=True)
+
+        traj_every   = int(params.get('traj_interval',  record_steps))        # steps between frames
+        state_every  = int(params.get('state_interval', record_steps))
 
     if params.get('save_window_traj', False):
         simulation.reporters.append(app.XTCReporter(
