@@ -243,6 +243,7 @@ if __name__=="__main__":
     params['run_umbrella'] = True
     params["window_sim_time_ns"] = 1.0
     params['n_windows'] = 26
+    params["save_window_traj"] = True
     if params['smoke_test']:
         params['n_windows'] = 6
         params["window_sim_time_ns"] = 0.1
