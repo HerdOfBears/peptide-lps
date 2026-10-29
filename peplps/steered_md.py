@@ -596,7 +596,9 @@ def analyze_pmf(params:dict=None):
 
     _pmf_fpath = os.path.join(params['odir'],'pmf.txt')
     _data = np.loadtxt(_pmf_fpath)
-    _rvals, _pmf_raw, _pmf_std = _data[:,0], _data[:,1], _data[:,2]
+    _rvals, _pmf_raw, _pmf_std = _data[:,0], _data[:,1], _data[:,2] # nm, kcal/mol, kcal/mol
+    _pmf_raw = _pmf_raw * 4.184 # convert to kJ/mol
+    _pmf_std = _pmf_std * 4.184 # convert to kJ/mol
 
     _n_rvals = len(_rvals)
     _condn_pmf_std_not_nan = all(np.isfinite(_pmf_std))
