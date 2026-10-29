@@ -244,6 +244,10 @@ if __name__=="__main__":
     params["window_sim_time_ns"] = 1.0
     params['n_windows'] = 26
     params["save_window_traj"] = True
+
+    params["parallelize_windows"] = True
+    params['n_parallel_jobs'] = 5
+
     if params['smoke_test']:
         params['n_windows'] = 6
         params["window_sim_time_ns"] = 0.1
