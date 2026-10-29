@@ -508,7 +508,6 @@ def run_wham(r0, rf, params, nbins=50, tol=1e-6, temperature=303.15, numpad=0):
 
     cmd = [
         exe,                # program
-        "kj",               # energy units (kJ/(mol*K))
         f'{float(r0):.6f}', # lower bound of CVvals
         f'{float(rf):.6f}', # upper bound of CVvals
         str(int(nbins)),    # number of bins for WHAM
