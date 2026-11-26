@@ -258,7 +258,11 @@ if __name__=="__main__":
     ##############
     logging.info(f"Running NPT equil..")
     logging.info(f"Running NPT equilibriation for {total_npt_equilibriation_steps} steps...")
-    _barostat = MonteCarloBarostat(1.0*unit.bar, temperature)
+    if params.get("use_cuPotential", False):
+        import nv_openmm_plugin as nv
+        _barostat = nv.MonteCarloBarostat(1.0*unit.bar, temperature, frequency=25)
+    else:
+        _barostat = MonteCarloBarostat(   1.0*unit.bar, temperature, frequency=25)
     _barostat.setRandomNumberSeed(params["rseed"])
     system.addForce(
             _barostat
