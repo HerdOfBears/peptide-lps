@@ -7,6 +7,7 @@ import openmm.app as app
 import openmm.unit as unit
 from openmm import Vec3
 
+
 import numpy as np
 import parmed as pmd
 
@@ -293,12 +294,20 @@ def build_system(params):
     #####################################
     # load forcefield parameters
     #####################################
-    param_files = []
-    for _f in os.listdir(params["ff_toppar_path"]):
-        if _f =="toppar.str":
-            continue
-        if _f.endswith(".str") or _f.endswith(".prm") or _f.endswith(".rtf"):
-            param_files.append( os.path.join(params["ff_toppar_path"], _f) ) 
+    # param_files = []
+    # for _f in os.listdir(params["ff_toppar_path"]):
+    #     if _f =="toppar.str":
+    #         continue
+    #     if _f.endswith(".str") or _f.endswith(".prm") or _f.endswith(".rtf"):
+    #         param_files.append( os.path.join(params["ff_toppar_path"], _f) ) 
+
+    order = {".rtf": 0, ".prm": 1, ".str": 2}
+    param_files = sorted(
+        (os.path.join(params["ff_toppar_path"], f)
+        for f in os.listdir(params["ff_toppar_path"])
+        if f != "toppar.str" and os.path.splitext(f)[1] in order),
+        key=lambda p: (order[os.path.splitext(p)[1]], os.path.basename(p)),
+    )
 
     ff_params = app.CharmmParameterSet(*param_files)
 
@@ -332,6 +341,20 @@ def build_system(params):
             hydrogenMass=_hmr_mass
         )
 
+    if params.get("use_cuPotential", False):
+        import nv_openmm_plugin as nv
+
+        for index, force in enumerate(system.getForces()):
+            if isinstance(force, omm.NonbondedForce):
+                system.addForce(nv.NonbondedForce(force))
+                system.removeForce(index)
+                break
+        
+        # The cuPotential integrator handles center-of-mass motion removal.
+        for index, force in enumerate(system.getForces()):
+            if isinstance(force, omm.CMMotionRemover):
+                system.removeForce(index)
+                break
 
     return system, solvated_psf, struct_crds
 
@@ -363,16 +386,25 @@ def build_simulation(system, solvated_psf, struct_crds, params, platform=None):
     if platform is None:
         platform = omm.Platform.getPlatformByName("OpenCL") if omm.Platform.getNumPlatforms() else None
 
-
-    integrator = omm.LangevinMiddleIntegrator(
-        params['temperature']*unit.kelvin,
-        1.0/unit.picosecond,
-        params['dt']*unit.femtoseconds
-    )
-    integrator.setRandomNumberSeed( int(params["rseed"]) )
+    if params.get("use_cuPotential", False):
+        import nv_openmm_plugin as nv
+        integrator = nv.LangevinIntegrator(
+            params['temperature']*unit.kelvin,
+            1.0/unit.picosecond,
+            params['dt']*unit.femtoseconds
+        )
+        integrator.setRandomNumberSeed( int(params["rseed"]) )
+    else:
+        integrator = omm.LangevinMiddleIntegrator(
+            params['temperature']*unit.kelvin,
+            1.0/unit.picosecond,
+            params['dt']*unit.femtoseconds
+        )
+        integrator.setRandomNumberSeed( int(params["rseed"]) )
 
     print(type(system), type(integrator), type(platform))
     logging.info(f"{type(system)}, {type(integrator)}, {type(platform)}")
+    
     simulation = app.Simulation(solvated_psf.topology, system, integrator, platform)
     print(system.getNumParticles(),
       struct_crds.topology.getNumAtoms(),
