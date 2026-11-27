@@ -11,8 +11,10 @@ import pickle as pkl
 import pandas as pd
 import numpy as np
 import torch
+from pathlib import Path
 
 from peplps.boltz_helpers import run_boltz_predict, write_yaml_input
+from peplps.esmfold2_predict import run_esmfold2_predict, write_fasta_input
 from peplps.evo_bo import EVO_BO_2026, _NResEncoder
 
 # test
@@ -33,31 +35,46 @@ def high_fidelity_score(seq, pep_id, params=None):
         _odir.mkdir(parents=True)
 
     ##################################################
-    # Run Boltz 2
+    # Run Structure prediction (Boltz2 or ESMFold2)
     ##################################################
-    yaml_path = _odir / f"pep-{pep_id}-input.yaml"
-    write_yaml_input(seq, pep_id, yaml_path)
+    # yaml_path = _odir / f"pep-{pep_id}-input.yaml"
+    # write_yaml_input(seq, pep_id, yaml_path)
 
-    out_dir = _odir / f"pep-{pep_id}-boltz2-prediction"
-    _output_fmt = "pdb"
-    run_boltz_predict(
-        yaml_path=yaml_path,
-        out_dir=out_dir,
-        accelerator=params["accelerator"],
-        recycling_steps=params["recycling_steps"],
-        diffusion_samples=params["diffusion_samples"],
-        output_format=_output_fmt,
-        override=params["override"]
+    # out_dir = _odir / f"pep-{pep_id}-boltz2-prediction"
+    # _output_fmt = "pdb"
+    # run_boltz_predict(
+    #     yaml_path=yaml_path,
+    #     out_dir=out_dir,
+    #     accelerator=params["accelerator"],
+    #     recycling_steps=params["recycling_steps"],
+    #     diffusion_samples=params["diffusion_samples"],
+    #     output_format=_output_fmt,
+    #     override=params["override"]
+    # )
+    
+    fasta_path = _odir / f"pep-{pep_id}-input.fasta"
+    write_fasta_input([seq], fasta_path)
+
+    cifs = run_esmfold2_predict(
+        fasta_path=fasta_path,
+        out_dir=_odir / f"pep-{pep_id}-esmfold2-prediction",
+        model_name="biohub/ESMFold2-Fast",
+        device="cuda:0",
+        num_loops=3,
+        num_sampling_steps=10,
+        num_samples=1,
+        seed=42,
+        override=True,
     )
 
     ####
     # get the predicted structure file path
-    pred_struct_path = (
-        out_dir / f"boltz_results_pep-{pep_id}-input" /\
-            "predictions" /f"pep-{pep_id}-input" /\
-            f"pep-{pep_id}-input_model_0.{_output_fmt}"
-    )
-
+    # pred_struct_path = (
+    #     out_dir / f"boltz_results_pep-{pep_id}-input" /\
+    #         "predictions" /f"pep-{pep_id}-input" /\
+    #         f"pep-{pep_id}-input_model_0.{_output_fmt}"
+    # )
+    pred_struct_path = cifs[0]  # ESMFold2 output path
     ##################################################
     # run SMD simulations using the predicted structure
     ##################################################
