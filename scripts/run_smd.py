@@ -68,6 +68,7 @@ if __name__=="__main__":
     parser.add_argument("--run_umbrella", default=False, action="store_true",help="Whether or not to do umbrella sampling, or just SMD")
     parser.add_argument("--parallelize_windows", default=False, action="store_true", help="Whether or not to run umbrella sampling windows in parallel using joblib")
     parser.add_argument("--n_parallel_jobs", default=1, type=int, help="Number of parallel jobs to run if parallelizing umbrella sampling windows")
+    parser.add_argument("--use_cuPotential", default=False, action="store_true", help="Whether or not to use the cuPotential plugin for OpenMM (requires nv_openmm_plugin)")
     
     args = parser.parse_args()
 
