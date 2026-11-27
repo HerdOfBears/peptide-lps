@@ -14,7 +14,7 @@ import torch
 from pathlib import Path
 
 from peplps.boltz_helpers import run_boltz_predict, write_yaml_input
-from peplps.esmfold2_predict import run_esmfold2_predict, write_fasta_input
+from peplps.esmfold2_predict import run_esmfold2_predict, write_fasta_input, cif_to_pdb
 from peplps.evo_bo import EVO_BO_2026, _NResEncoder
 
 # test
@@ -60,8 +60,8 @@ def high_fidelity_score(seq, pep_id, params=None):
         out_dir=_odir / f"pep-{pep_id}-esmfold2-prediction",
         model_name="biohub/ESMFold2-Fast",
         device="cuda:0",
-        num_loops=3,
-        num_sampling_steps=10,
+        num_loops=20,
+        num_sampling_steps=100,
         num_samples=1,
         seed=42,
         override=True,
@@ -74,7 +74,7 @@ def high_fidelity_score(seq, pep_id, params=None):
     #         "predictions" /f"pep-{pep_id}-input" /\
     #         f"pep-{pep_id}-input_model_0.{_output_fmt}"
     # )
-    pred_struct_path = cifs[0]  # ESMFold2 output path
+    pred_struct_path = cif_to_pdb(cifs[0])  # ESMFold2 output path
     ##################################################
     # run SMD simulations using the predicted structure
     ##################################################
@@ -231,6 +231,7 @@ if __name__=="__main__":
     args = vars(args)
 
     params = {}
+    params["use_cuPotential"] = False
     params['smoke_test'] = args['smoke_test']
     params["expt_dir"]   = args["expt_dir"]
     params["MAX_OR_MIN_OBJ"] = "MIN"  # or "MAX"
