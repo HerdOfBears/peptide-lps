@@ -7,6 +7,7 @@ import math
 import os
 import logging
 import numpy as np
+from peplps.helpers import build_system, set_cubic_box_from_positions
 
 # Function to add backbone position restraints
 def add_backbone_posres(system, pdb, restraint_force, periodic_boundaries=True):
@@ -45,6 +46,25 @@ def calculate_state_PE_and_maxForce(simulation:simulation.Simulation):
     _forces = _state.getForces(asNumpy=True)
     max_force = np.max(np.linalg.norm(_forces, axis=1))
     return pe, max_force
+
+def preminimize_with_stock_openmm(params, positions, platform, properties,
+                                  tolerance, max_iterations):
+    """
+    Minimize with standard OpenMM forces (no cuPotential plugin).
+
+    The stock system can use OpenMM's CPU fallback for very large forces,
+    which plugin forces cannot. Returns the minimized positions.
+    """
+    stock_system, psf, _ = build_system({**params, "use_cuPotential": False})
+    sim = Simulation(psf.topology, stock_system,
+                         VerletIntegrator(0.001 * picoseconds),
+                         platform, properties)
+    sim.context.setPositions(positions)
+    sim.minimizeEnergy(tolerance=tolerance, maxIterations=max_iterations)
+    state = sim.context.getState(getPositions=True, getEnergy=True)
+    print("Stock pre-minimization energy:", state.getPotentialEnergy())
+    del sim                                   # free GPU memory
+    return state.getPositions()
 
 def staged_soft_energy_minimization(simulation:simulation.Simulation):
     """
