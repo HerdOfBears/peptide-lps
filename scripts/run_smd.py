@@ -23,7 +23,8 @@ import logging
 from peplps.openmm_helpers import (
     add_backbone_posres,
     calculate_state_PE_and_maxForce,
-    staged_soft_energy_minimization
+    staged_soft_energy_minimization,
+    preminimize_with_stock_openmm
 )
 
 from peplps.helpers import (
@@ -215,6 +216,17 @@ if __name__=="__main__":
     _pe, _fmax = calculate_state_PE_and_maxForce(simulation)
     _counter=0
     _condn = ( (_pe<0) and (_fmax<INIT_FORCE_MAX_CUTOFF) )
+
+    logging.info(f"Initial PE={_pe:.4e}, max force={_fmax:.4e}")
+    start_pos = simulation.context.getState(getPositions=True).getPositions()
+    min_pos = preminimize_with_stock_openmm(
+        params, start_pos, platform,
+        tolerance=10.0 * unit.kilojoule_per_mole / unit.nanometer,
+        max_iterations=5000,
+    )
+    simulation.context.setPositions(min_pos)
+    _pe, _fmax = calculate_state_PE_and_maxForce(simulation)
+    logging.info(f"after stock pre-minimization: PE={_pe:.4e}, max force={_fmax:.4e}")
 
     staged_soft_energy_minimization(simulation)
     _pe, _fmax = calculate_state_PE_and_maxForce(simulation)
