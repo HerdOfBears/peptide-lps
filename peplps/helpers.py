@@ -328,7 +328,7 @@ def build_system(params):
             nonbondedMethod=app.PME,
             nonbondedCutoff=params['nonbondedCutoff']*unit.nanometer,
             constraints=app.HBonds,
-            ewaldErrorTolerance=1e-4,
+            ewaldErrorTolerance=5e-4,
         )
     else:
         # set up system
@@ -404,7 +404,7 @@ def build_simulation(system, solvated_psf, struct_crds, params, platform=None):
 
     print(type(system), type(integrator), type(platform))
     logging.info(f"{type(system)}, {type(integrator)}, {type(platform)}")
-    
+
     simulation = app.Simulation(solvated_psf.topology, system, integrator, platform)
     print(system.getNumParticles(),
       struct_crds.topology.getNumAtoms(),
