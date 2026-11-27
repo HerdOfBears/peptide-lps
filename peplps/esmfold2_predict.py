@@ -19,6 +19,14 @@ from esm.models.esmfold2 import (
     StructurePredictionInput,
 )
 
+def write_fasta_input(sequences: list[str], fasta_path: Path) -> None:
+    """Write a FASTA file with one record per chain (A, B, C, ...)."""
+    fasta_path.parent.mkdir(parents=True, exist_ok=True)
+    fasta_content = "\n".join(
+        f">{string.ascii_uppercase[i]}\n{seq}"
+        for i, seq in enumerate(sequences)
+    )
+    fasta_path.write_text(fasta_content + "\n")
 
 @lru_cache(maxsize=1)
 def _load_model(model_name: str, device: str):
