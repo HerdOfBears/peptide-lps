@@ -317,8 +317,10 @@ def build_system(params):
     struct_crds  = pmd.load_file(    params["pdb"])
 
     # struct crds positions are in Angstrom
-    L = set_cubic_box_from_positions(solvated_psf, struct_crds.positions.in_units_of(unit.angstrom), padding_nm=0.0)
+    # L = set_cubic_box_from_positions(solvated_psf, struct_crds.positions.in_units_of(unit.angstrom), padding_nm=0.0)
     # logging.info(f"Set cubic box length (nm): {L}")
+    a, b, c = struct_crds.box[:3]          # Å, read by ParmEd from the CRYST1 line
+    solvated_psf.setBox(a * unit.angstrom, b * unit.angstrom, c * unit.angstrom)
 
     _hmr_mass = params.get("hmr_mass", None)
     if _hmr_mass is not None:
