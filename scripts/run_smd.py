@@ -221,6 +221,7 @@ if __name__=="__main__":
     start_pos = simulation.context.getState(getPositions=True).getPositions()
     min_pos = preminimize_with_stock_openmm(
         params, start_pos, platform,
+        properties={"Precision": "mixed"},
         tolerance=10.0 * unit.kilojoule_per_mole / unit.nanometer,
         max_iterations=5000,
     )
