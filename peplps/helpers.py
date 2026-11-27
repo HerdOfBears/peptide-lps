@@ -337,7 +337,7 @@ def build_system(params):
             nonbondedMethod=app.PME,
             nonbondedCutoff=params['nonbondedCutoff']*unit.nanometer,
             constraints=app.HBonds,
-            ewaldErrorTolerance=1e-4,
+            ewaldErrorTolerance=5e-4,
             hydrogenMass=_hmr_mass
         )
 
