@@ -388,7 +388,7 @@ def build_simulation(system, solvated_psf, struct_crds, params, platform=None):
 
     if params.get("use_cuPotential", False):
         import nv_openmm_plugin as nv
-        integrator = nv.LangevinIntegrator(
+        integrator = nv.LangevinMiddleIntegrator(
             params['temperature']*unit.kelvin,
             1.0/unit.picosecond,
             params['dt']*unit.femtoseconds
