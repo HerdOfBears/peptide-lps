@@ -11,6 +11,8 @@ import string
 from functools import lru_cache
 from pathlib import Path
 
+from openmm.app import PDBFile, PDBxFile
+
 import torch
 from esm.models.esmfold2 import (
     ESMFold2InputBuilder,
@@ -27,6 +29,37 @@ def write_fasta_input(sequences: list[str], fasta_path: Path) -> None:
         for i, seq in enumerate(sequences)
     )
     fasta_path.write_text(fasta_content + "\n")
+
+def cif_to_pdb(cif_path: Path, pdb_path: Path | None = None) -> Path:
+    """
+    Convert an mmCIF file (e.g. an ESMFold2 prediction) to PDB format.
+
+    Parameters
+    ----------
+    cif_path : Path
+        Input .cif file.
+    pdb_path : Path, optional
+        Output .pdb file. Defaults to the same name with a .pdb extension.
+
+    Returns
+    -------
+    Path
+        Path of the written .pdb file.
+    """
+    cif_path = Path(cif_path)
+    if pdb_path is None:
+        pdb_path = cif_path.with_suffix(".pdb")   # pred.cif -> pred.pdb
+    pdb_path = Path(pdb_path)
+
+    # Read atoms, residues, chains and coordinates from the mmCIF file
+    cif = PDBxFile(str(cif_path))
+
+    # Write them out as PDB. keepIds=True keeps the original chain IDs and
+    # residue numbers instead of renumbering from 1.
+    with open(pdb_path, "w") as f:
+        PDBFile.writeFile(cif.topology, cif.positions, f, keepIds=True)
+
+    return pdb_path
 
 @lru_cache(maxsize=1)
 def _load_model(model_name: str, device: str):
