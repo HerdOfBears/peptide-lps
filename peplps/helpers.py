@@ -384,8 +384,19 @@ def build_simulation(system, solvated_psf, struct_crds, params, platform=None):
     """
 
     if platform is None:
-        platform = omm.Platform.getPlatformByName("OpenCL") if omm.Platform.getNumPlatforms() else None
+        available = [omm.Platform.getPlatform(i).getName()
+                    for i in range(omm.Platform.getNumPlatforms())]
+        if params.get("use_cuPotential", False):
+            if "CUDA" not in available:
+                raise RuntimeError(f"cuPotential needs the CUDA platform; available: {available}")
+            platform = omm.Platform.getPlatformByName("CUDA")
+        else:
+            for name in ("CUDA", "OpenCL", "CPU"):
+                if name in available:
+                    platform = omm.Platform.getPlatformByName(name)
+                    break
 
+    properties = {"Precision": "mixed"} if platform.getName() in ("CUDA", "OpenCL") else {}
     if params.get("use_cuPotential", False):
         import nv_openmm_plugin as nv
         integrator = nv.LangevinMiddleIntegrator(
