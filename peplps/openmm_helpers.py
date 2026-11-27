@@ -53,7 +53,34 @@ def preminimize_with_stock_openmm(params, positions, platform, properties,
     Minimize with standard OpenMM forces (no cuPotential plugin).
 
     The stock system can use OpenMM's CPU fallback for very large forces,
-    which plugin forces cannot. Returns the minimized positions.
+    which plugin forces cannot. Use this before minimizing a plugin
+    simulation, then pass the returned positions to the plugin Context.
+
+    Parameters
+    ----------
+    params : dict
+        The configuration dictionary passed to ``build_system`` (psf, pdb,
+        ff_toppar_path, nonbondedCutoff, ...). ``use_cuPotential`` is
+        overridden to False here, so the original dict is not modified.
+    positions : list of openmm.Vec3 or Quantity
+        Starting coordinates, in the same atom order as the PSF (e.g.
+        ``struct_crds.positions`` or the positions from the plugin Context).
+    platform : openmm.Platform
+        Platform for the temporary simulation, normally CUDA.
+    properties : dict
+        Platform properties, e.g. ``{"Precision": "mixed"}``. Use ``{}``
+        for the CPU platform.
+    tolerance : openmm.unit.Quantity
+        Convergence criterion: minimization stops when the root-mean-square
+        force falls below this value, in force units (kJ/mol/nm).
+    max_iterations : int
+        Maximum number of minimizer iterations; 0 means no limit (run until
+        the tolerance is reached).
+
+    Returns
+    -------
+    list of openmm.Vec3 (Quantity, nm)
+        Minimized positions, ready for ``simulation.context.setPositions()``.
     """
     stock_system, psf, _ = build_system({**params, "use_cuPotential": False})
     sim = Simulation(psf.topology, stock_system,
