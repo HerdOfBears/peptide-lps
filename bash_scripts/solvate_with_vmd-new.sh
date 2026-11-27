@@ -109,11 +109,15 @@ EOF
 
 grep -q "SOLVATE_OK" "$LOG" || { echo "ERROR: solvation failed - see $LOG"; exit 1; }
 
-# Check that no atom lost its coordinates during solvate/autoionize
-for f in "${SOLV}.pdb" "${ION}.pdb"; do
-    n=$(bad_atoms "$f")
-    [ "$n" -eq 0 ] || { echo "ERROR: $n atoms in $f have no coordinates"; exit 1; }
-done
+# solvate/autoionize match solute atoms by name, so LPS atoms with 5-character
+# names (H810R, ...) lose their coordinates. Copy the solute coordinates back by
+# atom order from the input PDB.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python "${SCRIPT_DIR}/restore_solute_coords.py" "$PDB" "${ION}.pdb"
+
+# Final check: no atom may be left without coordinates
+n=$(bad_atoms "${ION}.pdb")
+[ "$n" -eq 0 ] || { echo "ERROR: $n atoms in ${ION}.pdb have no coordinates"; exit 1; }
 
 # Optional: a proper CHARMM CRD file, written by ParmEd from the PSF + PDB
 python -c "
