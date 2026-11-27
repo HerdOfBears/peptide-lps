@@ -3,7 +3,7 @@ import os
 import time 
 
 from openmm import unit, Vec3
-import openmm as mm
+import openmm as omm
 import openmm.app as app
 from openmm import MonteCarloBarostat
 
@@ -80,7 +80,18 @@ if __name__=="__main__":
         except ValueError:
             raise ValueError(f"Invalid rseed value: {params['rseed']}. Must be an integer.")
 
-    platform = mm.Platform.getPlatformByName("OpenCL") if mm.Platform.getNumPlatforms() else None
+    if platform is None:
+        available = [omm.Platform.getPlatform(i).getName()
+                    for i in range(omm.Platform.getNumPlatforms())]
+        if params.get("use_cuPotential", False):
+            if "CUDA" not in available:
+                raise RuntimeError(f"cuPotential needs the CUDA platform; available: {available}")
+            platform = omm.Platform.getPlatformByName("CUDA")
+        else:
+            for name in ("CUDA", "OpenCL", "CPU"):
+                if name in available:
+                    platform = omm.Platform.getPlatformByName(name)
+                    break
 
     if not os.path.exists(params["odir"]):
         os.makedirs(params["odir"])
